@@ -9,6 +9,8 @@
 
 #import "AVPlayerTool.h"
 #import <AVFoundation/AVFoundation.h>
+#import <CoreTelephony/CTCall.h>
+#import <CoreTelephony/CTCallCenter.h>
 
 @interface AVPlayerTool ()
 @property(nonatomic,strong)AVPlayer *avPlayer;
@@ -16,6 +18,14 @@
 @property(nonatomic,copy)StatusResponse statusBlock;
 @property(nonatomic,copy)BufferResponse bufferBlock;
 @property(nonatomic,copy)PlayResponse playBlock;
+
+@property(nonatomic,strong)CTCallCenter *callCenter;//电话监听
+
+@property(nonatomic,assign)BOOL isBuffering;//缓冲中
+
+@property(nonatomic,assign)CGFloat bufferProgress;//缓冲进度
+@property(nonatomic,assign)CGFloat playProgress;//播放进度
+
 @end
 @implementation AVPlayerTool
 
@@ -38,8 +48,8 @@
 //MARK: - 播放
 -(void)play{
     if (self.avPlayer) {
-        [self addObserver];
         [self.avPlayer play];
+        self.isPlaying = YES;
     }
 }
 //MARK: - 添加监听
@@ -65,11 +75,26 @@
             !strongSelf.playBlock?:strongSelf.playBlock(current,total,progress);
         }
     }];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(audioRouteChange:)   name:AVAudioSessionRouteChangeNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(audioInterruption:) name:AVAudioSessionInterruptionNotification object:nil];
+    
+    self.callCenter = [[CTCallCenter alloc] init];
+    [self.callCenter setCallEventHandler:^(CTCall * _Nonnull call) {
+        if ([[call callState] isEqual:CTCallStateIncoming]) {
+            //电话接通
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [strongSelf pause];
+            });
+        }
+    }];
 }
 //MARK: - 暂停
 -(void)pause{
-    if (self.avPlayer) {
+    if (self.avPlayer&&self.isPlaying) {
         [self.avPlayer pause];
+        self.isPlaying = NO;
     }
 }
 //MARK: - 停止
@@ -78,7 +103,9 @@
     [self.avPlayer removeObserver:self forKeyPath:@"status"];
     [self.avPlayer removeObserver:self forKeyPath:@"loadedTimeRanges"];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    
+    if (self.isPlaying) {
+        self.isPlaying = NO;
+    }
 }
 //MARK: - Observer  Method
 -(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context{
@@ -86,19 +113,23 @@
         switch (self.avPlayer.status) {
             case AVPlayerStatusUnknown:
                 [self checkLogShowWithString:@"未知状态"];
+                [self stop];
                 !self.statusBlock?:self.statusBlock(kPlayerStatusUnknown);
                 break;
             case AVPlayerStatusReadyToPlay:
                 [self checkLogShowWithString:@"准备播放"];
+                self.isPlaying = YES;
                 !self.statusBlock?:self.statusBlock(kPlayerStatusReadyToPlay);
                 break;
             case AVPlayerStatusFailed:
                 [self checkLogShowWithString:@"加载失败"];
+                [self stop];
                 !self.statusBlock?:self.statusBlock(kPlayerStatusFailed);
                 break;
                 
             default:
                 [self checkLogShowWithString:@"未知错误"];
+                [self stop];
                 !self.statusBlock?:self.statusBlock(kPlayerStatusUnknown);
                 break;
         }
@@ -115,14 +146,66 @@
         NSTimeInterval scale = totalLoadTime/duration;
     
         [self checkLogShowWithString:[NSString stringWithFormat:@"-缓冲进度--%f,---%f,---%f",totalLoadTime,duration,scale]];
+        self.bufferProgress = scale;
         //更新缓冲进度条
         !self.bufferBlock?:self.bufferBlock(totalLoadTime,duration,scale);
         
     }
 }
+
+- (void)audioRouteChange:(NSNotification*)notification
+{
+    
+    NSDictionary *interuptionDict = notification.userInfo;
+    NSInteger routeChangeReason = [[interuptionDict valueForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
+    switch (routeChangeReason) {
+        case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
+            //耳机插入
+            break;
+        case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
+            //耳机拔出
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self pause];
+            });
+        }
+            break;
+        case AVAudioSessionRouteChangeReasonCategoryChange:
+            
+            break;
+    }
+}
+
+- (void)audioInterruption:(NSNotification *)notification{
+    NSDictionary *interuptionDict = notification.userInfo;
+    NSInteger interuptionType = [[interuptionDict     valueForKey:AVAudioSessionInterruptionTypeKey] integerValue];
+    NSNumber* seccondReason = [[notification userInfo] objectForKey:AVAudioSessionInterruptionOptionKey] ;
+    switch (interuptionType) {
+        case AVAudioSessionInterruptionTypeBegan:
+        {
+            NSLog(@"收到中断，停止音频播放");
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self pause];
+            });
+            break;
+        }
+        case AVAudioSessionInterruptionTypeEnded:
+            NSLog(@"系统中断结束");
+            break;
+    }
+    switch ([seccondReason integerValue]) {
+        case AVAudioSessionInterruptionOptionShouldResume:
+            NSLog(@"恢复音频播放");
+            break;
+        default:
+            break;
+    }
+}
+
 //MARK: - 播放结束
 -(void)playFinied:(AVPlayerItem *)item{
     [self checkLogShowWithString:@"播放结束"];
+    [self pause];
     !self.statusBlock?:self.statusBlock(kPlayerStatusEnd);
 }
 
@@ -134,8 +217,16 @@
 }
 //MARK: - 拖到指定比例播放 0-1
 -(void)seekToPlayWithTimeScale:(CGFloat)timeScale{
+    if (timeScale > 1) {
+        timeScale = 1;
+    }
+    if (timeScale < 0) {
+        timeScale = 0;
+    }
     CGFloat timeTotal = CMTimeGetSeconds(self.avPlayer.currentItem.duration);
-    [self.avPlayer seekToTime:CMTimeMake(timeTotal*timeScale, 1)];
+    CMTime seekTime = CMTimeMake(timeScale*timeTotal, 1);
+    [self.avPlayer.currentItem cancelPendingSeeks];
+    [self.avPlayer.currentItem seekToTime:seekTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:nil];
 }
 
 //MARK: - 实时监听状态，缓冲进度，播放进度
@@ -147,13 +238,25 @@
 
 //MARK: - 校验播放
 -(void)checkPlayWithItem:(AVPlayerItem *)item{
-    if (self.avPlayer) {
+    if (@available(iOS 9.0, *)) {
+        item.canUseNetworkResourcesForLiveStreamingWhilePaused = NO;
+    }
+    if (@available(iOS 10.0, *)) {
+        //防止新系统有时播放不了情况
+        item.preferredForwardBufferDuration = 1;
+    }
+    if (self.avPlayer&&self.avPlayer.currentItem) {
         [self.avPlayer replaceCurrentItemWithPlayerItem:item];
+        self.isPlaying = YES;
     }else{
         AVPlayer *player = [[AVPlayer alloc]initWithPlayerItem:item];
         self.avPlayer = player;
+        [self addObserver];
         [self play];
     }
+    if (@available(iOS 10.0, *)) {
+        self.avPlayer.automaticallyWaitsToMinimizeStalling = NO;//直接播放，不管缓冲完没有
+    } 
 }
 //MARK: - 打印log
 -(void)checkLogShowWithString:(NSString *)string{

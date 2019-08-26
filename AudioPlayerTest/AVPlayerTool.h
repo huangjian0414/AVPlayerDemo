@@ -72,6 +72,10 @@ typedef void(^PlayResponse)(CGFloat progress, CGFloat totalTime, CGFloat scale);
  */
 @property(nonatomic,assign)BOOL isShowLog;
 
+/**
+ 是否正在播放
+ */
+@property(nonatomic,assign)BOOL isPlaying;
 @end
 
 NS_ASSUME_NONNULL_END
