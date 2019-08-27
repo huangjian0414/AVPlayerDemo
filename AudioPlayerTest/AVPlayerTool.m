@@ -215,6 +215,30 @@
     AVPlayerItem *playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:urlString]];
     [self checkPlayWithItem:playerItem];
 }
+//MARK: - 播放上一首
+-(void)playPre{
+    if (self.currentItem - 1 < 0) {
+        return;
+    }
+    self.currentItem--;
+    [self playWithItemIndex:self.currentItem];
+}
+//MARK: - 播放下一首
+-(void)playNext{
+    if (self.currentItem + 1 >= self.urlArray.count) {
+        return;
+    }
+    self.currentItem++;
+    [self playWithItemIndex:self.currentItem];
+}
+//MARK: - 播放指定下标音乐
+-(void)playWithItemIndex:(NSInteger)index{
+    if (self.urlArray.count<=1) {
+        return;
+    }
+    [self replaceItemWithUrl:self.urlArray[self.currentItem]];
+}
+
 //MARK: - 拖到指定比例播放 0-1
 -(void)seekToPlayWithTimeScale:(CGFloat)timeScale{
     if (timeScale > 1) {

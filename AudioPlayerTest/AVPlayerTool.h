@@ -58,6 +58,16 @@ typedef void(^PlayResponse)(CGFloat progress, CGFloat totalTime, CGFloat scale);
 -(void)replaceItemWithUrl:(NSString *)url;
 
 /**
+ 播放上一首
+ */
+-(void)playPre;
+
+/**
+ 播放下一首
+ */
+-(void)playNext;
+
+/**
  拖到指定比例播放  0-1
  */
 -(void)seekToPlayWithTimeScale:(CGFloat)timeScale;

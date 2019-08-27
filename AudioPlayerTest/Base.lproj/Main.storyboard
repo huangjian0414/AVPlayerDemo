@@ -51,6 +51,24 @@
                                     <action selector="playAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="mpv-1L-8QJ"/>
                                 </connections>
                             </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="00:00" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="qRh-7t-4zl">
+                                <rect key="frame" x="58" y="444.5" width="39" height="17"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="00:00" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bLz-3Y-xYh">
+                                <rect key="frame" x="317" y="444.5" width="39" height="17"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ges-WS-6Gc">
+                                <rect key="frame" x="20" y="317.5" width="374" height="20.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
@@ -58,20 +76,31 @@
                             <constraint firstItem="MKY-Zw-h1Y" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="yTJ-5S-LGh" secondAttribute="trailing" constant="8" symbolic="YES" id="2a9-TY-dcf"/>
                             <constraint firstItem="yTJ-5S-LGh" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="100" id="38z-ZD-KYv"/>
                             <constraint firstItem="yTJ-5S-LGh" firstAttribute="centerY" secondItem="B2A-83-o2t" secondAttribute="centerY" id="5D2-4d-2Br"/>
+                            <constraint firstItem="qRh-7t-4zl" firstAttribute="centerY" secondItem="LG9-Rv-s8w" secondAttribute="centerY" id="9nY-Rb-k6r"/>
                             <constraint firstItem="B2A-83-o2t" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="MKY-Zw-h1Y" secondAttribute="trailing" constant="8" symbolic="YES" id="Bd9-0e-IqU"/>
                             <constraint firstItem="LG9-Rv-s8w" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" id="Daz-3c-6Lg"/>
+                            <constraint firstItem="bLz-3Y-xYh" firstAttribute="leading" secondItem="LG9-Rv-s8w" secondAttribute="trailing" constant="10" id="EDp-ZZ-YDY"/>
                             <constraint firstItem="B2A-83-o2t" firstAttribute="top" secondItem="LG9-Rv-s8w" secondAttribute="bottom" constant="40" id="EiE-3N-tEh"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Ges-WS-6Gc" secondAttribute="trailing" constant="20" id="KK2-2X-mgn"/>
+                            <constraint firstItem="Ges-WS-6Gc" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="M34-gN-n2T"/>
                             <constraint firstItem="MKY-Zw-h1Y" firstAttribute="centerY" secondItem="B2A-83-o2t" secondAttribute="centerY" id="NLT-K7-Zun"/>
                             <constraint firstItem="MKY-Zw-h1Y" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="RFA-3b-pTd"/>
+                            <constraint firstItem="Ges-WS-6Gc" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="cId-5W-awj"/>
+                            <constraint firstItem="LG9-Rv-s8w" firstAttribute="leading" secondItem="qRh-7t-4zl" secondAttribute="trailing" constant="10" id="gbo-yx-0pS"/>
+                            <constraint firstItem="bLz-3Y-xYh" firstAttribute="centerY" secondItem="LG9-Rv-s8w" secondAttribute="centerY" id="iJ5-3A-6d5"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="B2A-83-o2t" secondAttribute="trailing" constant="100" id="krE-Qd-47l"/>
+                            <constraint firstItem="LG9-Rv-s8w" firstAttribute="top" secondItem="Ges-WS-6Gc" secondAttribute="bottom" constant="100" id="rmM-Sa-SVi"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
                     <connections>
+                        <outlet property="currentUrl" destination="Ges-WS-6Gc" id="r7j-uk-x1D"/>
                         <outlet property="nextBtn" destination="B2A-83-o2t" id="8LB-Vq-9mk"/>
                         <outlet property="playBtn" destination="MKY-Zw-h1Y" id="UmL-D3-Hks"/>
                         <outlet property="preBtn" destination="yTJ-5S-LGh" id="sVf-01-ty3"/>
+                        <outlet property="progressLabel" destination="qRh-7t-4zl" id="x06-t5-TVL"/>
                         <outlet property="slider" destination="LG9-Rv-s8w" id="sIc-iR-VEZ"/>
+                        <outlet property="totalTime" destination="bLz-3Y-xYh" id="J44-9h-C3c"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
