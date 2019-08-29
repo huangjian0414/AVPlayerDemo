@@ -11,6 +11,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CoreTelephony/CTCall.h>
 #import <CoreTelephony/CTCallCenter.h>
+#import <MediaPlayer/MediaPlayer.h>
 
 @interface AVPlayerTool ()
 @property(nonatomic,strong)AVPlayer *avPlayer;
@@ -68,10 +69,13 @@
         float current = CMTimeGetSeconds(time);
         //总时间
         float total = CMTimeGetSeconds(weakSelf.avPlayer.currentItem.duration);
-        if (current) {
+        if (current&&self.isPlaying) {
             float progress = current / total;
-            //更新播放进度条
+            strongSelf.items[strongSelf.currentItem].duration = total;
+            strongSelf.items[strongSelf.currentItem].playedTime = current;
+            [strongSelf lockScreenConfig];
             [strongSelf checkLogShowWithString:[NSString stringWithFormat:@"-播放进度--%f,---%f,---%f",current,total,progress]];
+            //更新播放进度条
             !strongSelf.playBlock?:strongSelf.playBlock(current,total,progress);
         }
     }];
@@ -89,6 +93,111 @@
             });
         }
     }];
+    
+    [self lockScreenConfig];
+    
+    [self createRemoteCommandCenter];
+}
+//MARK: - 锁屏相关
+-(void)lockScreenConfig {
+    
+    // 1.获取锁屏界面中心
+    MPNowPlayingInfoCenter *playingInfoCenter = [MPNowPlayingInfoCenter defaultCenter];
+    
+    // 2.设置展示的信息
+    NSMutableDictionary *playingInfo = [NSMutableDictionary dictionary];
+    // 设置歌曲标题
+    if (self.items[self.currentItem].title) {
+        [playingInfo setObject:self.items[self.currentItem].title forKey:MPMediaItemPropertyAlbumTitle];
+        [playingInfo setObject:self.items[self.currentItem].title forKey:MPMediaItemPropertyTitle];
+    }
+    // 设置歌手
+    if (self.items[self.currentItem].singer) {
+        [playingInfo setObject:self.items[self.currentItem].singer forKey:MPMediaItemPropertyArtist];
+    }
+    
+    // 设置封面
+    if (self.items[self.currentItem].image) {
+        MPMediaItemArtwork *artWork = [[MPMediaItemArtwork alloc] initWithImage:[UIImage imageNamed:self.items[self.currentItem].image]];
+        [playingInfo setObject:artWork forKey:MPMediaItemPropertyArtwork];
+    }
+    // 设置歌曲播放的总时长
+    [playingInfo setObject:@(self.items[self.currentItem].duration) forKey:MPMediaItemPropertyPlaybackDuration];
+    //设置已经播放时长
+    [playingInfo setObject:@(self.items[self.currentItem].playedTime) forKey:MPNowPlayingInfoPropertyElapsedPlaybackTime];
+    
+    playingInfoCenter.nowPlayingInfo = playingInfo;
+    
+    // 3.让应用程序可以接受远程事件
+    [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
+    
+}
+
+//锁屏界面开启和监控远程控制事件
+- (void)createRemoteCommandCenter{
+    
+    MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+    //耳机线控的暂停/播放
+    commandCenter.togglePlayPauseCommand.enabled = YES;
+    commandCenter.playCommand.enabled = YES;
+    commandCenter.pauseCommand.enabled = YES;
+    __weak typeof(self) weakSelf = self;
+    [commandCenter.togglePlayPauseCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        if (weakSelf.isPlaying) {
+            [weakSelf pause];
+        }else {
+            [weakSelf play];
+        }
+        return MPRemoteCommandHandlerStatusSuccess;
+    }];
+    [commandCenter.pauseCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        NSLog(@"暂停");
+        [weakSelf pause];
+        return MPRemoteCommandHandlerStatusSuccess;
+    }];
+    [commandCenter.stopCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        NSLog(@"停止");
+        [weakSelf stop];
+        return MPRemoteCommandHandlerStatusSuccess;
+    }];
+    [commandCenter.playCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        NSLog(@"播放");
+        [weakSelf play];
+        return MPRemoteCommandHandlerStatusSuccess;
+    }];
+    [commandCenter.previousTrackCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        NSLog(@"上一首");
+        [weakSelf playPre];
+        return MPRemoteCommandHandlerStatusSuccess;
+    }];
+    [commandCenter.nextTrackCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+        NSLog(@"下一首");
+        [weakSelf playNext];
+        return MPRemoteCommandHandlerStatusSuccess;
+    }];
+
+//    [commandCenter.seekForwardCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+//        MPSeekCommandEvent * playbackPositionEvent = (MPSeekCommandEvent *)event;
+//        [weakSelf seekWithTime:playbackPositionEvent.timestamp];
+//        return MPRemoteCommandHandlerStatusSuccess;
+//    }];
+//    [commandCenter.seekBackwardCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
+//        MPSeekCommandEvent * playbackPositionEvent = (MPSeekCommandEvent *)event;
+//        [weakSelf seekWithTime:playbackPositionEvent.timestamp];
+//        return MPRemoteCommandHandlerStatusSuccess;
+//    }];
+}
+
+//关闭远程控制中心
+- (void)closeRemoteCommandCenter {
+    MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+    [commandCenter.pauseCommand removeTarget:self];
+    [commandCenter.playCommand removeTarget:self];
+    [commandCenter.previousTrackCommand removeTarget:self];
+    [commandCenter.nextTrackCommand removeTarget:self];
+    [commandCenter.seekBackwardCommand removeTarget:self];
+    [commandCenter.seekForwardCommand removeTarget:self];
+    commandCenter = nil;
 }
 //MARK: - 暂停
 -(void)pause{
@@ -99,10 +208,11 @@
 }
 //MARK: - 停止
 -(void)stop{
-    [self.urlArray removeAllObjects];
+    [self.items removeAllObjects];
     [self.avPlayer removeObserver:self forKeyPath:@"status"];
     [self.avPlayer removeObserver:self forKeyPath:@"loadedTimeRanges"];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self closeRemoteCommandCenter];
     if (self.isPlaying) {
         self.isPlaying = NO;
     }
@@ -222,21 +332,23 @@
     }
     self.currentItem--;
     [self playWithItemIndex:self.currentItem];
+    [self lockScreenConfig];
 }
 //MARK: - 播放下一首
 -(void)playNext{
-    if (self.currentItem + 1 >= self.urlArray.count) {
+    if (self.currentItem + 1 >= self.items.count) {
         return;
     }
     self.currentItem++;
     [self playWithItemIndex:self.currentItem];
+    [self lockScreenConfig];
 }
 //MARK: - 播放指定下标音乐
 -(void)playWithItemIndex:(NSInteger)index{
-    if (self.urlArray.count<=1) {
+    if (self.items.count<=1) {
         return;
     }
-    [self replaceItemWithUrl:self.urlArray[self.currentItem]];
+    [self replaceItemWithUrl:self.items[self.currentItem].url];
 }
 
 //MARK: - 拖到指定比例播放 0-1
@@ -248,7 +360,10 @@
         timeScale = 0;
     }
     CGFloat timeTotal = CMTimeGetSeconds(self.avPlayer.currentItem.duration);
-    CMTime seekTime = CMTimeMake(timeScale*timeTotal, 1);
+    [self seekWithTime:timeTotal*timeScale];
+}
+-(void)seekWithTime:(NSInteger)time{
+    CMTime seekTime = CMTimeMake(time, 1);
     [self.avPlayer.currentItem cancelPendingSeeks];
     [self.avPlayer.currentItem seekToTime:seekTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:nil];
 }
@@ -289,11 +404,16 @@
     }
 }
 
--(NSMutableArray<NSString *> *)urlArray{
-    if (!_urlArray) {
-        _urlArray = [NSMutableArray array];
+-(NSMutableArray<ItemInfo *> *)items{
+    if (!_items) {
+        _items = [NSMutableArray array];
     }
-    return _urlArray;
+    return _items;
 }
+
+@end
+
+@implementation ItemInfo
+
 
 @end

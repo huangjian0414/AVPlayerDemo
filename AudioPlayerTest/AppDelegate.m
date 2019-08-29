@@ -19,27 +19,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
-    //设置后台播放功能
-    AVAudioSession *session = [AVAudioSession sharedInstance];
-    [session setCategory:AVAudioSessionCategoryPlayback error:nil];
-    [session setActive:YES error:nil];
-    // 开始接受远程控制
-    [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
     
-    //锁屏信息
-    NSMutableDictionary *songInfo = [ [NSMutableDictionary alloc] init];
-    //锁屏图片
-    UIImage *img = [UIImage imageNamed:@"解锁弹窗图"];
-    if (img) {
-        MPMediaItemArtwork *albumArt = [[MPMediaItemArtwork alloc]initWithImage:img];
-        [songInfo setObject: albumArt forKey:MPMediaItemPropertyArtwork ];
-    }
-    //锁屏标题
-    NSString *title = @"music";
-    [songInfo setObject:[NSNumber numberWithFloat:100] forKey:MPMediaItemPropertyPlaybackDuration];
-    [songInfo setObject:title forKey:MPMediaItemPropertyTitle];
-    [songInfo setObject:title forKey:MPMediaItemPropertyAlbumTitle];
-    [[MPNowPlayingInfoCenter defaultCenter] setNowPlayingInfo:songInfo ];
     return YES;
 }
 

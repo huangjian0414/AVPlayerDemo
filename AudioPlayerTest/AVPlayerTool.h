@@ -21,12 +21,13 @@ typedef void(^StatusResponse)(PlayerStatus status);
 typedef void(^BufferResponse)(CGFloat progress, CGFloat totalTime, CGFloat scale);
 typedef void(^PlayResponse)(CGFloat progress, CGFloat totalTime, CGFloat scale);
 
+@class ItemInfo;
 @interface AVPlayerTool : NSObject
 +(instancetype)shareInstance;
 /**
  播放资源数组
  */
-@property(nonatomic,strong)NSMutableArray<NSString *> *urlArray;
+@property(nonatomic,strong)NSMutableArray<ItemInfo *> *items;
 
 /**
  当前播放下标
@@ -86,6 +87,15 @@ typedef void(^PlayResponse)(CGFloat progress, CGFloat totalTime, CGFloat scale);
  是否正在播放
  */
 @property(nonatomic,assign)BOOL isPlaying;
+@end
+
+@interface ItemInfo : NSObject
+@property(nonatomic,copy)NSString *url;//音频链接
+@property(nonatomic,copy)NSString *title;//标题
+@property(nonatomic,copy)NSString *singer;//歌手
+@property(nonatomic,copy)NSString *image;//封面图
+@property(nonatomic,assign)CGFloat duration;//音频总时长
+@property(nonatomic,assign)CGFloat playedTime;//已播放时长
 @end
 
 NS_ASSUME_NONNULL_END

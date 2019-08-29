@@ -23,18 +23,17 @@
 @property(nonatomic,assign)BOOL isSlidering;
 @property(nonatomic,assign)CGFloat playProgress;
 
-@property(nonatomic,strong)NSArray<NSString *> *urls;
+@property(nonatomic,strong)NSArray<ItemInfo *> *urls;
 @end
 
 @implementation ViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [[AVPlayerTool shareInstance]playWithUrl:@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/b5aac03b9c017b8be66d8d627244662b.mp3"];
-    
-    [AVPlayerTool shareInstance].urlArray = self.urls.mutableCopy;
+    [AVPlayerTool shareInstance].items = self.urls.mutableCopy;
+    [[AVPlayerTool shareInstance]playWithUrl:self.urls[0].url];
     [AVPlayerTool shareInstance].currentItem = 0;
-    self.currentUrl.text = self.urls[0];
+    self.currentUrl.text = self.urls[0].url;
     
     self.playBtn.selected = YES;
     
@@ -67,11 +66,11 @@
 }
 - (IBAction)preAction:(UIButton *)sender {
     [[AVPlayerTool shareInstance]playPre];
-    self.currentUrl.text = self.urls[[AVPlayerTool shareInstance].currentItem];
+    self.currentUrl.text = self.urls[[AVPlayerTool shareInstance].currentItem].url;
 }
 - (IBAction)nextAction:(UIButton *)sender {
     [[AVPlayerTool shareInstance]playNext];
-    self.currentUrl.text = self.urls[[AVPlayerTool shareInstance].currentItem];
+    self.currentUrl.text = self.urls[[AVPlayerTool shareInstance].currentItem].url;
 }
 - (IBAction)playAction:(UIButton *)sender {
     sender.selected = !sender.selected;
@@ -93,12 +92,22 @@
     });
 }
 
--(NSArray<NSString *> *)urls{
+-(NSArray<ItemInfo *> *)urls{
     if (!_urls) {
-        _urls = @[@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/b5aac03b9c017b8be66d8d627244662b.mp3",@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/f157dd9f589c9f0f442fe949290d2056.mp3",@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/0a958abea324628d6621cc79ba1a4b8a.mp3",
-                  @"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/b16fa647e22ed8e6a6331c5df067fef4.mp3"];
+        NSArray *urlArray =@[@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/b5aac03b9c017b8be66d8d627244662b.mp3",@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/f157dd9f589c9f0f442fe949290d2056.mp3",@"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/0a958abea324628d6621cc79ba1a4b8a.mp3",
+                             @"http://7xt9bh.com2.z0.glb.qiniucdn.com/data/upload/b16fa647e22ed8e6a6331c5df067fef4.mp3"];
+        NSMutableArray<ItemInfo *> *items = [NSMutableArray array];
+        for (int i=0; i<urlArray.count; i++) {
+            ItemInfo *item = [[ItemInfo alloc]init];
+            item.url = urlArray[i];
+            item.title = [NSString stringWithFormat:@"第%d首",i];
+            item.singer = [NSString stringWithFormat:@"空军%d号",i];
+            [items addObject:item];
+        }
+        _urls = items;
     }
     return _urls;
 }
+
 
 @end
